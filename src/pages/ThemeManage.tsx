@@ -738,8 +738,8 @@ export function ThemeManage() {
     });
   }, []);
 
-  // CF-Server-Monitor 的探测点固定为四条线路，没有可配置的 ping 任务列表。
-  const pingTasks = useMemo(() => carrierPingTasks(), []);
+  // 通道 ID 固定，显示名称跟随后端的探测配置。
+  const pingTasks = useMemo(() => config?.pingTasks ?? carrierPingTasks(), [config?.pingTasks]);
   const tasksLoading = false;
   const {
     data: adminClients,

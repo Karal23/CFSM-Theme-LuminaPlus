@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { useMinuteClock } from "@/hooks/useClock";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
+import { usePublicConfig } from "@/hooks/usePublicConfig";
 import {
   getPingHistorySnapshot,
   subscribePingHistory,
@@ -308,12 +309,16 @@ export function useNodePingOverviewLines(
 ): HomepagePingLine[] {
   const samples = usePingSamples(uuid, enabled);
   const { homepageMultiPingTaskIds } = useThemeSettings();
+  const { data: config } = usePublicConfig();
   return useMemo(
     () =>
       enabled
-        ? getCachedLines(uuid, homepageMultiPingTaskIds, samples)
+        ? getCachedLines(uuid, homepageMultiPingTaskIds, samples).map((line) => ({
+            ...line,
+            taskName: config?.pingTasks?.find((task) => task.id === line.taskId)?.name ?? line.taskName,
+          }))
         : EMPTY_PING_LINES,
-    [enabled, homepageMultiPingTaskIds, samples, uuid],
+    [enabled, homepageMultiPingTaskIds, samples, uuid, config?.pingTasks],
   );
 }
 

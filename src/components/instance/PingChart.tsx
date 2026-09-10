@@ -3,6 +3,7 @@ import UplotReact from "uplot-react";
 import type uPlot from "uplot";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { usePingRecords } from "@/hooks/useRecords";
+import { usePublicConfig } from "@/hooks/usePublicConfig";
 import { InstancePanel, InstanceChartLoading } from "./InstancePanel";
 import {
   buildChartTooltipHooks,
@@ -148,7 +149,14 @@ export function PingChart({
   });
   const isDark = resolvedAppearance === "dark";
   // API 顺序与后台任务权重一致，响应本身不一定包含可重排的权重。
-  const tasks = useMemo(() => [...(data?.tasks ?? [])], [data]);
+  const { data: config } = usePublicConfig();
+  const tasks = useMemo(
+    () => (data?.tasks ?? []).map((task) => ({
+      ...task,
+      name: config?.pingTasks?.find((configured) => configured.id === task.id)?.name ?? task.name,
+    })),
+    [data, config?.pingTasks],
+  );
   const taskLabels = useMemo(() => {
     const counts = new Map<string, number>();
     for (const task of tasks) {

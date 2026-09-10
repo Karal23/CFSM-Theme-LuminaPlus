@@ -229,6 +229,10 @@ export const SiteConfigSchema = z
     turnstile_site_key: looseString.default(""),
     site_title: looseString.default(""),
     display_mode: looseString.default(""),
+    custom_ct_name: looseString.optional(),
+    custom_cu_name: looseString.optional(),
+    custom_cm_name: looseString.optional(),
+    custom_bd_name: looseString.optional(),
     theme_options: z.record(z.string(), z.unknown()).default({}),
     verified: z.boolean().default(false),
     turnstile_verified: looseString.nullish().transform((v) => v ?? ""),
@@ -591,6 +595,7 @@ export interface PublicConfig {
   turnstile_site_key: string;
   verified: boolean;
   theme_settings: Record<string, unknown>;
+  pingTasks?: PingTask[];
   sys: SysConfig;
   /** 后端下发的首页延迟窗口口径；缺席时前端从数据自推跨度。见 `SiteConfigSchema.latency_window`。 */
   latencyWindow?: { points?: number; hours?: number };

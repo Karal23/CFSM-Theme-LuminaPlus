@@ -13,6 +13,7 @@ import {
   type NodeMetrics,
   type PingRecord,
   type PingTask,
+  type SiteConfig,
 } from "@/types/cfsm";
 
 /** 后端内存/磁盘字段的单位是 MiB，流量配额是 GB。 */
@@ -22,7 +23,7 @@ const GIB = 1024 * 1024 * 1024;
 /** 与后端 `/api/servers` 聚合统计一致的在线判定阈值。 */
 export const ONLINE_THRESHOLD_MS = 300_000;
 
-/** 四条固定线路。CF-Server-Monitor 的探测点是固定的，没有可配置的 ping 任务。 */
+/** 四条固定的数据通道；显示名称可以由后端配置。 */
 export const CARRIER_TASKS = [
   { id: 1, key: "ct", name: "电信", field: "ping_ct", lossField: "loss_ct" },
   { id: 2, key: "cu", name: "联通", field: "ping_cu", lossField: "loss_cu" },
@@ -36,11 +37,11 @@ export const CARRIER_TASK_BY_ID = new Map<number, CarrierTask>(
   CARRIER_TASKS.map((task) => [task.id, task]),
 );
 
-export function carrierPingTasks(): PingTask[] {
+export function carrierPingTasks(config?: Partial<SiteConfig>): PingTask[] {
   return CARRIER_TASKS.map((task) => ({
     id: task.id,
     interval: 60,
-    name: task.name,
+    name: config?.[`custom_${task.key}_name`]?.trim() || task.name,
     loss: 0,
     clients: [],
     type: "icmp",
