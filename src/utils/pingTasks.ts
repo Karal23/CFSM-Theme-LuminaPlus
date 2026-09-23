@@ -1,4 +1,21 @@
 export type HomepagePingTaskBindings = Record<string, string[]>;
+
+/** A server may use a carrier slot for a different destination. */
+export function resolvePingTaskName(
+  clientUuid: string,
+  taskId: number,
+  fallback: string,
+  nodeNames?: unknown,
+): string {
+  const tasks = nodeNames && typeof nodeNames === "object"
+    ? (nodeNames as Record<string, unknown>)[clientUuid]
+    : undefined;
+  const name = tasks && typeof tasks === "object"
+    ? (tasks as Record<number, unknown>)[taskId]
+    : undefined;
+  return typeof name === "string" && name.trim() ? name.trim() : fallback;
+}
+
 export const HOMEPAGE_MULTI_PING_TASK_COUNT = 3;
 
 /**

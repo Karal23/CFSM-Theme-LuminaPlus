@@ -4,6 +4,7 @@ import type uPlot from "uplot";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { usePingRecords } from "@/hooks/useRecords";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
+import { resolvePingTaskName } from "@/utils/pingTasks";
 import { InstancePanel, InstanceChartLoading } from "./InstancePanel";
 import {
   buildChartTooltipHooks,
@@ -153,9 +154,14 @@ export function PingChart({
   const tasks = useMemo(
     () => (data?.tasks ?? []).map((task) => ({
       ...task,
-      name: config?.pingTasks?.find((configured) => configured.id === task.id)?.name ?? task.name,
+      name: resolvePingTaskName(
+        uuid,
+        task.id,
+        config?.pingTasks?.find((configured) => configured.id === task.id)?.name ?? task.name,
+        config?.theme_settings?.nodePingTaskNames,
+      ),
     })),
-    [data, config?.pingTasks],
+    [data, uuid, config?.pingTasks, config?.theme_settings?.nodePingTaskNames],
   );
   const taskLabels = useMemo(() => {
     const counts = new Map<string, number>();

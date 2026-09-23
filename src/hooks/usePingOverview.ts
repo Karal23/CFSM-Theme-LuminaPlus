@@ -22,6 +22,7 @@ import {
   DEFAULT_HOMEPAGE_PING_TASK_ID,
   HOMEPAGE_MULTI_PING_TASK_COUNT,
   invertHomepagePingTaskBindings,
+  resolvePingTaskName,
 } from "@/utils/pingTasks";
 import type { NodeViewMode } from "@/utils/themeSettings";
 
@@ -315,10 +316,15 @@ export function useNodePingOverviewLines(
       enabled
         ? getCachedLines(uuid, homepageMultiPingTaskIds, samples).map((line) => ({
             ...line,
-            taskName: config?.pingTasks?.find((task) => task.id === line.taskId)?.name ?? line.taskName,
+            taskName: resolvePingTaskName(
+              uuid,
+              line.taskId,
+              config?.pingTasks?.find((task) => task.id === line.taskId)?.name ?? line.taskName,
+              config?.theme_settings?.nodePingTaskNames,
+            ),
           }))
         : EMPTY_PING_LINES,
-    [enabled, homepageMultiPingTaskIds, samples, uuid, config?.pingTasks],
+    [enabled, homepageMultiPingTaskIds, samples, uuid, config?.pingTasks, config?.theme_settings?.nodePingTaskNames],
   );
 }
 

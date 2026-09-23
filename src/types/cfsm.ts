@@ -397,6 +397,7 @@ export const EMPTY_CARRIER_PING: CarrierPingSnapshot = {
 };
 
 export interface ThemeSettings {
+  nodePingTaskNames?: Record<string, Record<number, string>>;
   defaultAppearance?: "system" | "light" | "dark";
   desktopNodeViewMode?: "large" | "compact" | "mini" | "list";
   mobileNodeViewMode?: "large" | "compact" | "mini" | "list";

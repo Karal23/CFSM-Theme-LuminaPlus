@@ -6,7 +6,18 @@ import {
   normalizeHomepagePingTaskBindings,
   resolveHomepagePingSelections,
   resolveHomepagePingTaskIdsByClient,
+  resolvePingTaskName,
 } from "@/utils/pingTasks";
+
+describe("per-node ping task names", () => {
+  it("renames only the configured node and task", () => {
+    const names = { landing: { 3: "阿里云 HK" } };
+    expect(resolvePingTaskName("landing", 3, "浙江移动", names)).toBe("阿里云 HK");
+    expect(resolvePingTaskName("landing", 1, "浙江电信", names)).toBe("浙江电信");
+    expect(resolvePingTaskName("other", 3, "浙江移动", names)).toBe("浙江移动");
+    expect(resolvePingTaskName("other", 3, "浙江移动")).toBe("浙江移动");
+  });
+});
 
 describe("homepage ping task bindings", () => {
   it("accepts only positive decimal safe integers", () => {
