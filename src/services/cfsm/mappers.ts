@@ -216,6 +216,10 @@ export function isServerOnline(server: CfsmServer, now = Date.now()): boolean {
 
 export function toNodeInfo(server: CfsmServer): NodeInfo {
   const gpus = parseGpuInfo(server.gpu_info);
+  const disabledPingTasks = CARRIER_TASKS.filter((task) => {
+    const target = server[`custom_${task.key}`];
+    return target === 0 || target === "0";
+  }).map((task) => task.id);
   return {
     uuid: server.id,
     name: server.name,
@@ -244,6 +248,7 @@ export function toNodeInfo(server: CfsmServer): NodeInfo {
     traffic_limit_type: normalizeTrafficCalcType(server.traffic_calc_type),
     traffic_reset_day: server.reset_day,
     report_interval: server.report_interval,
+    ...(disabledPingTasks.length > 0 ? { disabled_ping_tasks: disabledPingTasks } : {}),
     agent_version: server.agent_version,
     // 公共接口只给可达性标记，不给具体地址。
     ipv4: String(server.ip_v4) === "1" ? "1" : "",

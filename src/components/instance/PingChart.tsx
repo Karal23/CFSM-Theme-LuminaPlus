@@ -4,6 +4,7 @@ import type uPlot from "uplot";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { usePingRecords } from "@/hooks/useRecords";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
+import { useNodeMeta } from "@/hooks/useNode";
 import { resolvePingTaskName } from "@/utils/pingTasks";
 import { InstancePanel, InstanceChartLoading } from "./InstancePanel";
 import {
@@ -151,8 +152,11 @@ export function PingChart({
   const isDark = resolvedAppearance === "dark";
   // API 顺序与后台任务权重一致，响应本身不一定包含可重排的权重。
   const { data: config } = usePublicConfig();
+  const disabledTasks = useNodeMeta(uuid)?.disabled_ping_tasks;
   const tasks = useMemo(
-    () => (data?.tasks ?? []).map((task) => ({
+    () => (data?.tasks ?? [])
+      .filter((task) => !disabledTasks?.includes(task.id))
+      .map((task) => ({
       ...task,
       name: resolvePingTaskName(
         uuid,
@@ -161,7 +165,7 @@ export function PingChart({
         config?.theme_settings?.nodePingTaskNames,
       ),
     })),
-    [data, uuid, config?.pingTasks, config?.theme_settings?.nodePingTaskNames],
+    [data, disabledTasks, uuid, config?.pingTasks, config?.theme_settings?.nodePingTaskNames],
   );
   const taskLabels = useMemo(() => {
     const counts = new Map<string, number>();

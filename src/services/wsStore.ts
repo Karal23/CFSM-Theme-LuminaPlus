@@ -280,6 +280,7 @@ function shallowEqualMetrics(a: NodeMetrics, b: NodeMetrics) {
 
 function shallowEqualNodeInfo(a: NodeInfo, b: NodeInfo) {
   return (
+    a.disabled_ping_tasks?.join(",") === b.disabled_ping_tasks?.join(",") &&
     a.uuid === b.uuid &&
     a.name === b.name &&
     a.group === b.group &&

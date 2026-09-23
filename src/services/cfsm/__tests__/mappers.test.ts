@@ -143,6 +143,13 @@ describe("normalizeTrafficCalcType", () => {
 });
 
 describe("toNodeInfo", () => {
+  it("preserves explicitly disabled probes without disabling inherited targets", () => {
+    expect(toNodeInfo(server({ custom_ct: "0", custom_cu: 0, custom_cm: "relay.example:443" }))
+      .disabled_ping_tasks).toEqual([1, 2]);
+    expect(toNodeInfo(server({ custom_ct: "", custom_cu: null })).disabled_ping_tasks)
+      .toBeUndefined();
+  });
+
   it("converts MiB capacities to bytes and GB quota to bytes", () => {
     const info = toNodeInfo(server());
 

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { useMinuteClock } from "@/hooks/useClock";
 import { useThemeSettings } from "@/hooks/useThemeSettings";
 import { usePublicConfig } from "@/hooks/usePublicConfig";
+import { useNodeMeta } from "@/hooks/useNode";
 import {
   getPingHistorySnapshot,
   subscribePingHistory,
@@ -275,13 +276,17 @@ export function withLiveLatency(
   return { ...item, lastValue: value };
 }
 
-/** 节点在单线路模式下显示哪条线路：设置里指定过就用指定的，否则默认电信。 */
+/** 单线路优先使用指定线路；已停用时选择第一条仍启用的线路。 */
 export function useSelectedTaskId(uuid: string): number {
   const { homepagePingBindings } = useThemeSettings();
+  const disabledTasks = useNodeMeta(uuid)?.disabled_ping_tasks;
   return useMemo(() => {
     const byClient = invertHomepagePingTaskBindings(homepagePingBindings);
-    return byClient.get(uuid) ?? DEFAULT_HOMEPAGE_PING_TASK_ID;
-  }, [homepagePingBindings, uuid]);
+    const selected = byClient.get(uuid) ?? DEFAULT_HOMEPAGE_PING_TASK_ID;
+    return disabledTasks?.includes(selected)
+      ? [...CARRIER_TASK_BY_ID.keys()].find((id) => !disabledTasks.includes(id)) ?? selected
+      : selected;
+  }, [disabledTasks, homepagePingBindings, uuid]);
 }
 
 /**
@@ -311,10 +316,13 @@ export function useNodePingOverviewLines(
   const samples = usePingSamples(uuid, enabled);
   const { homepageMultiPingTaskIds } = useThemeSettings();
   const { data: config } = usePublicConfig();
+  const disabledTasks = useNodeMeta(uuid)?.disabled_ping_tasks;
   return useMemo(
     () =>
       enabled
-        ? getCachedLines(uuid, homepageMultiPingTaskIds, samples).map((line) => ({
+        ? getCachedLines(uuid, homepageMultiPingTaskIds, samples)
+          .filter((line) => !disabledTasks?.includes(line.taskId))
+          .map((line) => ({
             ...line,
             taskName: resolvePingTaskName(
               uuid,
@@ -324,7 +332,7 @@ export function useNodePingOverviewLines(
             ),
           }))
         : EMPTY_PING_LINES,
-    [enabled, homepageMultiPingTaskIds, samples, uuid, config?.pingTasks, config?.theme_settings?.nodePingTaskNames],
+    [disabledTasks, enabled, homepageMultiPingTaskIds, samples, uuid, config?.pingTasks, config?.theme_settings?.nodePingTaskNames],
   );
 }
 

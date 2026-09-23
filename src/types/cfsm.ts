@@ -329,6 +329,8 @@ export interface NodeInfo {
   traffic_reset_day: number;
   /** 探针上报间隔，秒。 */
   report_interval: number;
+  /** 在节点配置中明确停用的延迟探测任务。 */
+  disabled_ping_tasks?: number[];
   agent_version: string;
   /** CF-Server-Monitor 只下发可达性，不下发具体地址。 */
   ipv4: string;
