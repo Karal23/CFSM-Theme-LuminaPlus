@@ -137,7 +137,7 @@ export function useNodeCardModel(
     ) {
       return [];
     }
-    return homepageMultiPingTaskIds.map((taskId) => {
+    return homepageMultiPingTaskIds.filter((taskId) => !meta?.disabled_ping_tasks?.includes(taskId)).map((taskId) => {
       const loaded = realPingLines.find((line) => line.taskId === taskId);
       const line: HomepagePingLine =
         loaded ?? {
@@ -166,6 +166,7 @@ export function useNodeCardModel(
     bucketNow,
     homepageMultiPingTaskIds,
     latencyWindowMs,
+    meta?.disabled_ping_tasks,
     multiPingActive,
     offlineSince,
     pingBucketCount,

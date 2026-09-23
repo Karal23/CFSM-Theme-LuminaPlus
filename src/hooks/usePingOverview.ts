@@ -316,13 +316,10 @@ export function useNodePingOverviewLines(
   const samples = usePingSamples(uuid, enabled);
   const { homepageMultiPingTaskIds } = useThemeSettings();
   const { data: config } = usePublicConfig();
-  const disabledTasks = useNodeMeta(uuid)?.disabled_ping_tasks;
   return useMemo(
     () =>
       enabled
-        ? getCachedLines(uuid, homepageMultiPingTaskIds, samples)
-          .filter((line) => !disabledTasks?.includes(line.taskId))
-          .map((line) => ({
+        ? getCachedLines(uuid, homepageMultiPingTaskIds, samples).map((line) => ({
             ...line,
             taskName: resolvePingTaskName(
               uuid,
@@ -332,7 +329,7 @@ export function useNodePingOverviewLines(
             ),
           }))
         : EMPTY_PING_LINES,
-    [disabledTasks, enabled, homepageMultiPingTaskIds, samples, uuid, config?.pingTasks, config?.theme_settings?.nodePingTaskNames],
+    [enabled, homepageMultiPingTaskIds, samples, uuid, config?.pingTasks, config?.theme_settings?.nodePingTaskNames],
   );
 }
 
