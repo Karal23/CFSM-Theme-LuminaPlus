@@ -486,6 +486,27 @@ describe("稳定的真实历史窗口", () => {
     expect(buckets().every((bucket) => bucket.value === 2 && bucket.loss === 0)).toBe(true);
   });
 
+  it.each([20, 40, 80])("相隔 %i 分钟的访问缓存不能挤掉中间的真实历史", (minutes) => {
+    window.localStorage.setItem("cfsm-luminaplus:ping-live:v1", JSON.stringify({
+      v: 1,
+      savedAt: NOW,
+      nodes: {
+        landing: [minutes, 1].map((ago) => [
+          NOW - ago * 60_000, null, null, 2, null, null, null, 0, null,
+        ]),
+      },
+    }));
+    seedPingHistory("landing", backendWindow(Array(20).fill(2)));
+
+    expect(buckets().every((bucket) => bucket.value === 2 && bucket.loss === 0)).toBe(true);
+    expect(getPingHistorySnapshot("landing").map((sample) => sample.time))
+      .toEqual(expect.arrayContaining(backendWindow(Array(20).fill(2)).map((sample) => sample.time)));
+
+    // 新的实时样本到达后，旧会话和这次访问之间仍然交给后端历史覆盖。
+    recordPingSample("landing", NOW, ping({ cm: 3, lossCm: 0 }));
+    expect(buckets().every((bucket) => bucket.total > 0 && bucket.loss === 0)).toBe(true);
+  });
+
   it("末尾连续稳定时，实时更新和详情回灌前后覆盖一致", () => {
     const values = Array.from({ length: 20 }, (_, index) => index < 15 ? 1 + index % 2 : 2);
     seedPingHistory("landing", backendWindow(values));

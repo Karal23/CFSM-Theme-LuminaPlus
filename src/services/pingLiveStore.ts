@@ -341,9 +341,9 @@ function mergeWindowWithLocal(
 
   const step = resolveWindowStepMs(window);
   const cadence = resolveCadenceMs(local);
-  // 一段本地样本之间隔得比这还远，就当中间断了（标签页被挂起、或刚打开页面），
-  // 那段仍旧交给窗口。取 cadence 的两倍，偶尔慢一拍不算断。
-  const maxLocalGap = Math.max(step, cadence * 2);
+  // 本地最长按两分钟留一个心跳，不能把相隔几十分钟的两次访问当成采样周期。
+  // 中断时保留后端窗口；连续采样仍容许偶尔慢一拍，或一个窗口槽位的间隔。
+  const maxLocalGap = Math.max(step, Math.min(cadence, MIN_SAMPLE_GAP_MS) * 2);
 
   const out: PingLiveSample[] = [];
   let cursor = 0;
