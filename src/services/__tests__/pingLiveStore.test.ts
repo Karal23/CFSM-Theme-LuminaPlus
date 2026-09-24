@@ -461,8 +461,58 @@ describe("retainPingNodes", () => {
   });
 });
 
-describe("丢弃后端窗口里复制出来的格子", () => {
-  const NOW = Date.now();
+describe("稳定的真实历史窗口", () => {
+  const STEP = 6 * 60_000;
+  const WINDOW = 20 * STEP;
+
+  function backendWindow(values: Array<number | null>): PingLiveSample[] {
+    return values.map((cm, index) => ({
+      time: NOW - (values.length - index) * STEP,
+      ping: ping({ cm, lossCm: cm == null ? null : 0 }),
+    }));
+  }
+
+  function buckets() {
+    return buildPingBuckets(
+      buildPingOverviewItem("landing", 3, getPingHistorySnapshot("landing")),
+      20, NOW, null, WINDOW,
+    );
+  }
+
+  it("首次进入保留连续相同的 2ms、0% 丢包记录", () => {
+    seedPingHistory("landing", backendWindow(Array(20).fill(2)));
+
+    expect(getPingHistorySnapshot("landing")).toHaveLength(20);
+    expect(buckets().every((bucket) => bucket.value === 2 && bucket.loss === 0)).toBe(true);
+  });
+
+  it("末尾连续稳定时，实时更新和详情回灌前后覆盖一致", () => {
+    const values = Array.from({ length: 20 }, (_, index) => index < 15 ? 1 + index % 2 : 2);
+    seedPingHistory("landing", backendWindow(values));
+    const occupied = () => buckets().map((bucket) => bucket.total > 0);
+    expect(occupied()).toEqual(Array(20).fill(true));
+
+    recordPingSample("landing", NOW - 1000, ping({ cm: 2, lossCm: 0 }));
+    expect(occupied()).toEqual(Array(20).fill(true));
+
+    seedMeasuredHistory("landing", Array.from({ length: 120 }, (_, index) => ({
+      time: NOW - (120 - index) * 60_000,
+      ping: ping({ cm: values[Math.floor(index / 6)], lossCm: 0 }),
+    })));
+    expect(occupied()).toEqual(Array(20).fill(true));
+  });
+
+  it("真实缺测的连续空槽仍然留空", () => {
+    const values = Array.from({ length: 20 }, (_, index) => index >= 8 && index < 12 ? null : 2);
+    seedPingHistory("landing", backendWindow(values));
+
+    expect(getPingHistorySnapshot("landing")).toHaveLength(20);
+    expect(buckets().slice(8, 12).every((bucket) => bucket.total === 0 && bucket.loss == null)).toBe(true);
+    expect(buckets().slice(12).every((bucket) => bucket.value === 2 && bucket.loss === 0)).toBe(true);
+  });
+});
+
+describe("后端历史窗口的真实覆盖", () => {
   const STEP = 120_000;
 
   function windowOf(values: Array<[number, number, number]>): PingLiveSample[] {
@@ -472,15 +522,14 @@ describe("丢弃后端窗口里复制出来的格子", () => {
     }));
   }
 
-  it("刚加进来的节点：整窗口都是复印件，一格都不画", () => {
+  it("三条线路连续相同的低延迟记录仍然完整保留", () => {
     const uuid = "fresh-node";
-    // 线上实测形状：30 格全是 1/1/1，而历史表里只有 6 分钟的行。
     seedPingHistory(uuid, windowOf(Array.from({ length: 30 }, () => [1, 1, 1])));
 
-    expect(getPingHistorySnapshot(uuid)).toHaveLength(0);
+    expect(getPingHistorySnapshot(uuid)).toHaveLength(30);
   });
 
-  it("只丢重复段，末尾真值留着", () => {
+  it("稳定段和发生波动的末尾记录同时保留", () => {
     const uuid = "partly-real";
     const values: Array<[number, number, number]> = [
       ...Array.from({ length: 27 }, () => [136, 143, 150] as [number, number, number]),
@@ -491,8 +540,8 @@ describe("丢弃后端窗口里复制出来的格子", () => {
     seedPingHistory(uuid, windowOf(values));
 
     const kept = getPingHistorySnapshot(uuid);
-    expect(kept).toHaveLength(3);
-    expect(kept.map((sample) => sample.ping.ct)).toEqual([134, 134, 137]);
+    expect(kept).toHaveLength(30);
+    expect(kept.slice(-3).map((sample) => sample.ping.ct)).toEqual([134, 134, 137]);
   });
 
   it("正常波动的窗口一格不丢", () => {
@@ -508,8 +557,11 @@ describe("丢弃后端窗口里复制出来的格子", () => {
 
   it("新节点刷新之后：只画真实覆盖到的那几分钟，其余留空", () => {
     const uuid = "fresh-node-refreshed";
-    // 后端窗口整段是复印件（线上 Uzumaru-tw 的形状），历史表里只有最近 6 分钟。
-    seedPingHistory(uuid, windowOf(Array.from({ length: 30 }, () => [1, 1, 1])));
+    // 当前后端用空槽表示节点建立前的时段，不用相同数值猜测缺测。
+    seedPingHistory(uuid, Array.from({ length: 30 }, (_, index) => ({
+      time: NOW - (29 - index) * STEP,
+      ping: index < 27 ? ping({}) : ping({ ct: 40, cu: 41, cm: 42, lossCt: 0 }),
+    })));
     seedMeasuredHistory(
       uuid,
       Array.from({ length: 12 }, (_, index) => ({
@@ -526,7 +578,7 @@ describe("丢弃后端窗口里复制出来的格子", () => {
     expect(active).toBeLessThanOrEqual(6);
   });
 
-  it("短暂重复（不到门槛）不算复印件", () => {
+  it("短暂相同的记录仍然保留", () => {
     const uuid = "short-repeat";
     const values: Array<[number, number, number]> = [
       [130, 140, 150],
